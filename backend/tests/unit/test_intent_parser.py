@@ -209,6 +209,8 @@ class TestAsyncParse:
         assert result.source == "deterministic"
 
     @pytest.mark.asyncio
-    async def test_no_match_falls_to_chat(self, parser):
-        result = await parser.parse("kể tôi nghe một câu chuyện trước khi ngủ")
+    async def test_no_match_falls_to_llm(self, parser):
+        result = await parser.parse("tell me a bedtime story")
+        # LLM should classify this as CHAT
         assert result.intent == IntentType.CHAT
+        assert result.source == "llm"

@@ -6,6 +6,8 @@ from app.core.logging import setup_logging, get_logger
 from app.infra.database import check_db_connectivity, create_tables, dispose_engine
 from app.api.routes_device import router as device_router
 from app.api.routes_health import router as health_router
+from app.api.routes_websocket import router as websocket_router
+from app.services.background_tasks import start_background_tasks, stop_background_tasks
 
 setup_logging()
 logger = get_logger("main")
@@ -27,12 +29,14 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Database is unreachable. Check DATABASE_URL configuration.")
 
     await create_tables()
+    start_background_tasks()
     logger.info("server_started", port=settings.server_port, database="connected")
 
     yield
 
     # Shutdown
     logger.info("server_shutting_down")
+    await stop_background_tasks()
     await dispose_engine()
     logger.info("server_stopped")
 
@@ -46,3 +50,4 @@ app = FastAPI(
 
 app.include_router(device_router)
 app.include_router(health_router)
+app.include_router(websocket_router)

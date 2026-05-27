@@ -22,19 +22,19 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 4, 16.5
   - Dependencies: 2, 3
 
-- [ ] 5. Implement WebSocket handler and session management: WebSocketManager (connect, disconnect, send_json, send_binary), SessionManager (create, transition, get, cleanup), /ws endpoint with header validation, hello handshake with timeout (10s) and version check, JSON message dispatch by type, binary frame routing, disconnection cleanup
+- [x] 5. Implement WebSocket handler and session management: WebSocketManager (connect, disconnect, send_json, send_binary), SessionManager (create, transition, get, cleanup), /ws endpoint with header validation, hello handshake with timeout (10s) and version check, JSON message dispatch by type, binary frame routing, disconnection cleanup
   - Requirements: 1, 3, 17.4, 17.5
   - Dependencies: 3, 4
 
-- [ ] 6. Implement command dispatcher: command repository with async CRUD, CommandDispatcher service (dispatch, handle_ack, check_timeouts), structured JSON command building, WebSocket delivery, offline device handling (mark FAILED), COMMAND_ACK processing (update command status + device state), 5s timeout check, REST endpoints (POST commands, GET command status)
+- [x] 6. Implement command dispatcher: command repository with async CRUD, CommandDispatcher service (dispatch, handle_ack, check_timeouts), structured JSON command building, WebSocket delivery, offline device handling (mark FAILED), COMMAND_ACK processing (update command status + device state), 5s timeout check, REST endpoints (POST commands, GET command status)
   - Requirements: 7, 4.5
   - Dependencies: 4, 5
 
-- [ ] 7. Implement heartbeat monitor background task: runs every 30s, marks devices OFFLINE if lastSeenAt > 90s, logs status transitions
+- [x] 7. Implement heartbeat monitor background task: runs every 30s, marks devices OFFLINE if lastSeenAt > 90s, logs status transitions
   - Requirements: 4.3
   - Dependencies: 4
 
-- [ ] 8. Implement fake device simulator (simulator/fake_device.py): WebSocket connection with headers, hello handshake, periodic heartbeat (30s), command reception with COMMAND_ACK and state update, interactive text mode, configurable failure modes (--failure-mode), structured logging, CLI arguments (--device-id, --backend-url)
+- [x] 8. Implement fake device simulator (simulator/fake_device.py): WebSocket connection with headers, hello handshake, periodic heartbeat (30s), command reception with COMMAND_ACK and state update, interactive text mode, configurable failure modes (--failure-mode), structured logging, CLI arguments (--device-id, --backend-url)
   - Requirements: 13
   - Dependencies: 5, 6
 
@@ -42,7 +42,7 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 5.1, 5.3, 5.4, 5.5, 5.7, 5.8, 5.9
   - Dependencies: 3
 
-- [ ] 10. Implement LLM-based intent classification fallback: LangChain prompt for classification, 5s timeout, return UNKNOWN on failure, combined parse() method (deterministic first, then LLM)
+- [x] 10. Implement LLM-based intent classification fallback: LangChain prompt for classification, 5s timeout, return UNKNOWN on failure, combined parse() method (deterministic first, then LLM)
   - Requirements: 5.2, 5.6
   - Dependencies: 9
 
@@ -54,7 +54,7 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 11
   - Dependencies: 6, 9
 
-- [ ] 13. Implement Opus codec integration: OpusEncoder/OpusDecoder classes, decode 16kHz mono 60ms frames to PCM, encode PCM to 24kHz mono 60ms Opus frames, graceful decode error handling, audio buffer with 60s max duration
+- [x] 13. Implement Opus codec integration: OpusEncoder/OpusDecoder classes, decode 16kHz mono 60ms frames to PCM, encode PCM to 24kHz mono 60ms Opus frames, graceful decode error handling, audio buffer with 60s max duration
   - Requirements: 2
   - Dependencies: 1
 
@@ -66,7 +66,7 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 8.3, 8.4
   - Dependencies: 1, 13
 
-- [ ] 16. Implement LLM service (OpenAI GPT-4o-mini via LangChain): abstract LLMService interface, OpenAILLMService with ChatOpenAI, generate() with system prompt + context + user message, conversation context support (up to 10 turns), MockLLMService for testing
+- [x] 16. Implement LLM service (OpenAI GPT-4o-mini via LangChain): abstract LLMService interface, OpenAILLMService with ChatOpenAI, generate() with system prompt + context + user message, conversation context support (up to 10 turns), MockLLMService for testing
   - Requirements: 8.1, 8.4, 6.4
   - Dependencies: 1
 
