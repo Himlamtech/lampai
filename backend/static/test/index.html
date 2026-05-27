@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LampAI - Virtual Lamp Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #0f0f1a;
+        }
+
+        .lamp-glow {
+            box-shadow: 0 0 60px rgba(255, 210, 125, 0.8), 0 0 120px rgba(255, 210, 125, 0.4);
+            transition: all 0.5s ease;
+        }
+
+        .lamp-off {
+            box-shadow: none;
+            background: #2a2a3a !important;
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+
+            80%,
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        .listening-indicator {
+            animation: listening-pulse 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes listening-pulse {
+            from {
+                transform: scale(1);
+                opacity: 0.7;
+            }
+
+            to {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        .wave-bar {
+            animation: wave 0.8s ease-in-out infinite alternate;
+        }
+
+        .wave-bar:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .wave-bar:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .wave-bar:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .wave-bar:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes wave {
+            from {
+                height: 8px;
+            }
+
+            to {
+                height: 24px;
+            }
+        }
+
+        .transcript-fade {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center text-white font-sans">
+
+    <div id="app" class="w-full max-w-md mx-auto px-4 py-8 flex flex-col items-center gap-8">
+
+        <!-- Lamp Visualization -->
+        <div class="relative">
+            <div id="lamp-circle"
+                class="w-48 h-48 rounded-full flex items-center justify-center text-6xl transition-all duration-700 lamp-off"
+                style="background: #FFD27D;">
+                <span id="lamp-emoji">💡</span>
+            </div>
+            <!-- Listening ring -->
+            <div id="listening-ring" class="absolute inset-0 rounded-full border-4 border-amber-400 hidden pulse-ring">
+            </div>
+        </div>
+
+        <!-- Lamp State -->
+        <div id="lamp-state" class="text-center text-sm text-gray-400 space-y-1">
+            <p>Power: <span id="state-power" class="text-red-400">OFF</span></p>
+            <p>Brightness: <span id="state-brightness">50%</span> | Mode: <span id="state-mode">NORMAL</span></p>
+            <p>Music: <span id="state-music">⏹️ Stopped</span></p>
+        </div>
+
+        <!-- Status -->
+        <div id="status-area" class="text-center min-h-[80px] flex flex-col items-center justify-center">
+            <p id="status-text" class="text-gray-500 text-sm">Nhấn nút mic để bắt đầu nói</p>
+            <!-- Audio wave visualization -->
+            <div id="wave-viz" class="hidden flex items-center gap-1 mt-2">
+                <div class="wave-bar w-1 bg-amber-400 rounded-full"></div>
+                <div class="wave-bar w-1 bg-amber-400 rounded-full"></div>
+                <div class="wave-bar w-1 bg-amber-400 rounded-full"></div>
+                <div class="wave-bar w-1 bg-amber-400 rounded-full"></div>
+                <div class="wave-bar w-1 bg-amber-400 rounded-full"></div>
+            </div>
+        </div>
+
+        <!-- Transcript Area -->
+        <div id="transcript-area" class="w-full min-h-[100px] max-h-[200px] overflow-y-auto space-y-2 px-2">
+        </div>
+
+        <!-- Mic Button -->
+        <button id="mic-btn" onclick="toggleListening()"
+            class="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl shadow-lg hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-4 focus:ring-amber-400/50">
+            🎤
+        </button>
+
+        <!-- Text fallback input -->
+        <div class="w-full flex gap-2">
+            <input id="text-input" type="text" placeholder="Hoặc gõ lệnh ở đây..."
+                class="flex-1 p-3 bg-gray-800/50 border border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                onkeydown="if(event.key==='Enter')sendText()">
+            <button onclick="sendText()"
+                class="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl text-sm transition">Gửi</button>
+        </div>
+
+        <!-- Pipeline info (collapsible) -->
+        <details class="w-full text-xs text-gray-500">
+            <summary class="cursor-pointer hover:text-gray-300">Pipeline Details</summary>
+            <pre id="pipeline-info"
+                class="mt-2 p-3 bg-gray-800/50 rounded-lg overflow-x-auto whitespace-pre-wrap"></pre>
+        </details>
+    </div>
+
+    <script>
+        // State
+        let isListening = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let audioContext = null;
+        let lampState = { light_power: false, brightness: 50, mode: 'NORMAL', is_playing_music: false };
+
+        const API_BASE = window.location.origin;
+        const DEVICE_ID = 'TE:ST:00:00:00:01';
+        const SESSION_ID = 'test-sim-' + Date.now();
+
+        // DOM refs
+        const micBtn = document.getElementById('mic-btn');
+        const statusText = document.getElementById('status-text');
+        const waveViz = document.getElementById('wave-viz');
+        const listeningRing = document.getElementById('listening-ring');
+        const transcriptArea = document.getElementById('transcript-area');
+        const pipelineInfo = document.getElementById('pipeline-info');
+
+        // Register test device on load
+        fetch(`${API_BASE}/api/devices/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device_id: DEVICE_ID }),
+        }).catch(() => { });
+
+        async function toggleListening() {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        async function startListening() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new AudioContext();
+                audioChunks = [];
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    await processAudio();
+                };
+
+                mediaRecorder.start(100); // collect every 100ms
+                isListening = true;
+                setUIState('listening');
+            } catch (err) {
+                setStatus('❌ Không thể truy cập microphone: ' + err.message, 'text-red-400');
+            }
+        }
+
+        function stopListening() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isListening = false;
+            setUIState('processing');
+        }
+
+        async function processAudio() {
+            setStatus('🔄 Đang nhận dạng giọng nói...', 'text-amber-400');
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.webm');
+
+            try {
+                const sttRes = await fetch(`${API_BASE}/api/voice/transcribe`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (sttRes.ok) {
+                    const sttData = await sttRes.json();
+                    const text = sttData.text;
+                    if (text && text.trim().length > 0) {
+                        await processTranscription(text);
+                    } else {
+                        setStatus('🤷 Không nghe thấy gì, thử nói lại nhé', 'text-yellow-400');
+                        setUIState('idle');
+                    }
+                } else {
+                    const err = await sttRes.json().catch(() => ({}));
+                    setStatus('❌ Lỗi nhận dạng: ' + (err.detail || 'Unknown'), 'text-red-400');
+                    setUIState('idle');
+                }
+            } catch (err) {
+                setStatus('❌ Không kết nối được server: ' + err.message, 'text-red-400');
+                setUIState('idle');
+            }
+        }
+
+        async function processTranscription(text) {
+            if (!text || !text.trim()) {
+                setStatus('🤷 Không nghe thấy gì...', 'text-gray-400');
+                setUIState('idle');
+                return;
+            }
+
+            addTranscript('user', text);
+            await callPipeline(text);
+        }
+
+        async function sendText() {
+            const input = document.getElementById('text-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+
+            addTranscript('user', text);
+            setUIState('processing');
+            await callPipeline(text);
+        }
+
+        async function callPipeline(text) {
+            setStatus('🧠 Đang suy nghĩ...', 'text-blue-400');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/voice/process-text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, device_id: DEVICE_ID, session_id: SESSION_ID }),
+                });
+
+                const data = await res.json();
+
+                // Show pipeline info
+                pipelineInfo.textContent = JSON.stringify(data, null, 2);
+
+                // Update lamp state
+                updateLampState(data);
+
+                // Show AI response
+                if (data.ai_response) {
+                    addTranscript('ai', data.ai_response);
+                    setStatus(`✅ ${data.intent} (${data.latency_ms}ms)`, 'text-green-400');
+
+                    // Play TTS audio if available
+                    await playTTSResponse(data.ai_response);
+                } else {
+                    setStatus('Done', 'text-gray-400');
+                }
+            } catch (err) {
+                setStatus('❌ Lỗi: ' + err.message, 'text-red-400');
+            }
+
+            setUIState('idle');
+        }
+
+        async function playTTSResponse(text) {
+            setStatus('🔊 Đang phát...', 'text-purple-400');
+            try {
+                // Call TTS API directly to get audio
+                const res = await fetch(`${API_BASE}/api/voice/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text }),
+                });
+
+                if (res.ok) {
+                    const audioBlob = await res.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    await new Promise(resolve => {
+                        audio.onended = resolve;
+                        audio.onerror = resolve;
+                    });
+                    URL.revokeObjectURL(audioUrl);
+                }
+            } catch (err) {
+                // TTS playback failed silently — text response is still shown
+            }
+        }
+
+        function updateLampState(data) {
+            const intent = data.intent;
+            if (intent === 'TURN_ON_LIGHT') lampState.light_power = true;
+            else if (intent === 'TURN_OFF_LIGHT') lampState.light_power = false;
+            else if (intent === 'SET_BRIGHTNESS') lampState.brightness = data.params?.brightness || lampState.brightness;
+            else if (intent === 'INCREASE_BRIGHTNESS') lampState.brightness = Math.min(lampState.brightness + 20, 100);
+            else if (intent === 'DECREASE_BRIGHTNESS') lampState.brightness = Math.max(lampState.brightness - 20, 0);
+            else if (intent === 'CHANGE_LIGHT_MODE') lampState.mode = data.params?.mode || lampState.mode;
+            else if (intent === 'PLAY_MUSIC') lampState.is_playing_music = true;
+            else if (intent === 'STOP_MUSIC') lampState.is_playing_music = false;
+
+            renderLampState();
+        }
+
+        function renderLampState() {
+            const circle = document.getElementById('lamp-circle');
+            const power = document.getElementById('state-power');
+            const brightness = document.getElementById('state-brightness');
+            const mode = document.getElementById('state-mode');
+            const music = document.getElementById('state-music');
+
+            if (lampState.light_power) {
+                circle.classList.remove('lamp-off');
+                circle.classList.add('lamp-glow');
+                circle.style.opacity = lampState.brightness / 100;
+                power.textContent = 'ON';
+                power.className = 'text-green-400';
+            } else {
+                circle.classList.add('lamp-off');
+                circle.classList.remove('lamp-glow');
+                circle.style.opacity = 1;
+                power.textContent = 'OFF';
+                power.className = 'text-red-400';
+            }
+
+            brightness.textContent = lampState.brightness + '%';
+            mode.textContent = lampState.mode;
+            music.textContent = lampState.is_playing_music ? '▶️ Playing' : '⏹️ Stopped';
+        }
+
+        function addTranscript(role, text) {
+            const div = document.createElement('div');
+            div.className = 'transcript-fade';
+
+            if (role === 'user') {
+                div.innerHTML = `<div class="flex justify-end"><div class="bg-blue-600/30 border border-blue-500/30 px-4 py-2 rounded-2xl rounded-br-sm max-w-[80%] text-sm">${escapeHtml(text)}</div></div>`;
+            } else {
+                div.innerHTML = `<div class="flex justify-start"><div class="bg-gray-700/50 border border-gray-600/30 px-4 py-2 rounded-2xl rounded-bl-sm max-w-[80%] text-sm text-gray-200">${escapeHtml(text)}</div></div>`;
+            }
+
+            transcriptArea.appendChild(div);
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
+        }
+
+        function setStatus(text, colorClass) {
+            statusText.textContent = text;
+            statusText.className = `text-sm ${colorClass || 'text-gray-500'}`;
+        }
+
+        function setUIState(state) {
+            switch (state) {
+                case 'listening':
+                    micBtn.classList.add('bg-red-500', 'from-red-400', 'to-red-600');
+                    micBtn.classList.remove('from-amber-400', 'to-orange-500');
+                    micBtn.innerHTML = '⏹️';
+                    listeningRing.classList.remove('hidden');
+                    waveViz.classList.remove('hidden');
+                    setStatus('🎙️ Đang nghe...', 'text-amber-400 listening-indicator');
+                    break;
+                case 'processing':
+                    micBtn.classList.remove('bg-red-500', 'from-red-400', 'to-red-600');
+                    micBtn.classList.add('from-amber-400', 'to-orange-500');
+                    micBtn.innerHTML = '🎤';
+                    listeningRing.classList.add('hidden');
+                    waveViz.classList.add('hidden');
+                    break;
+                case 'idle':
+                default:
+                    micBtn.classList.remove('bg-red-500', 'from-red-400', 'to-red-600');
+                    micBtn.classList.add('from-amber-400', 'to-orange-500');
+                    micBtn.innerHTML = '🎤';
+                    listeningRing.classList.add('hidden');
+                    waveViz.classList.add('hidden');
+                    setStatus('Nhấn nút mic để bắt đầu nói', 'text-gray-500');
+                    break;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Init
+        renderLampState();
+    </script>
+</body>
+
+</html>

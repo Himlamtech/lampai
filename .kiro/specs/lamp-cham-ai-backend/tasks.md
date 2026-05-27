@@ -46,11 +46,11 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 5.2, 5.6
   - Dependencies: 9
 
-- [ ] 11. Implement smart light control command routing: TURN_ON/OFF_LIGHT, SET_BRIGHTNESS with validation, INCREASE/DECREASE_BRIGHTNESS with clamping (±20, 0-100), CHANGE_LIGHT_MODE with mode payload
+- [x] 11. Implement smart light control command routing: TURN_ON/OFF_LIGHT, SET_BRIGHTNESS with validation, INCREASE/DECREASE_BRIGHTNESS with clamping (±20, 0-100), CHANGE_LIGHT_MODE with mode payload
   - Requirements: 10
   - Dependencies: 6, 9
 
-- [ ] 12. Implement music playback command routing: PLAY_MUSIC (select track by type, include duration), STOP_MUSIC, fallback to default track when type not found
+- [x] 12. Implement music playback command routing: PLAY_MUSIC (select track by type, include duration), STOP_MUSIC, fallback to default track when type not found
   - Requirements: 11
   - Dependencies: 6, 9
 
@@ -58,11 +58,11 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 2
   - Dependencies: 1
 
-- [ ] 14. Implement STT service (OpenAI Whisper): abstract STTService interface, OpenAISTTService (PCM to WAV conversion, Whisper API call), language parameter support (vi/en/auto), MockSTTService for testing, retry once on transient errors
+- [x] 14. Implement STT service (OpenAI Whisper): abstract STTService interface, OpenAISTTService (PCM to WAV conversion, Whisper API call), language parameter support (vi/en/auto), MockSTTService for testing, retry once on transient errors
   - Requirements: 8.2, 8.4, 8.6
   - Dependencies: 1, 13
 
-- [ ] 15. Implement TTS service (OpenAI TTS-1): abstract TTSService interface, OpenAITTSService (text + voice + speed → audio), convert output to Opus frames for streaming, voice selection and speed support, MockTTSService for testing
+- [x] 15. Implement TTS service (OpenAI TTS-1): abstract TTSService interface, OpenAITTSService (text + voice + speed → audio), convert output to Opus frames for streaming, voice selection and speed support, MockTTSService for testing
   - Requirements: 8.3, 8.4
   - Dependencies: 1, 13
 
@@ -70,87 +70,87 @@ This plan implements the Lamp Chạm AI Backend in 6 phases: Backend Core + Fake
   - Requirements: 8.1, 8.4, 6.4
   - Dependencies: 1
 
-- [ ] 17. Implement voice pipeline orchestration: VoicePipeline class, process_audio() (decode → STT → intent → route → response → TTS → encode), process_text() (skip STT), routing logic (hardware → CommandDispatcher bypass LLM, CHAT → LLM + TTS, info → external tool + TTS), TTS message sequencing (start/sentence_start/stop), per-stage latency tracking, fallback responses for failures
+- [x] 17. Implement voice pipeline orchestration: VoicePipeline class, process_audio() (decode → STT → intent → route → response → TTS → encode), process_text() (skip STT), routing logic (hardware → CommandDispatcher bypass LLM, CHAT → LLM + TTS, info → external tool + TTS), TTS message sequencing (start/sentence_start/stop), per-stage latency tracking, fallback responses for failures
   - Requirements: 6, 17.1, 17.2, 17.3
   - Dependencies: 9, 10, 11, 12, 13, 14, 15, 16
 
-- [ ] 18. Implement conversation logging: conversation repository with async CRUD, store records after each interaction (device_id, session_id, user_text, ai_response, intent, latency_ms, stage_latencies), context retrieval (last 10 turns per session)
+- [x] 18. Implement conversation logging: conversation repository with async CRUD, store records after each interaction (device_id, session_id, user_text, ai_response, intent, latency_ms, stage_latencies), context retrieval (last 10 turns per session)
   - Requirements: 9.1, 9.4
   - Dependencies: 2, 17
 
-- [ ] 19. Integrate voice pipeline with WebSocket handler: connect listen.start/stop to pipeline, buffer binary frames during listening, send STT/TTS messages to device, stream TTS Opus frames, implement abort handling, add POST /api/voice/process-text endpoint
+- [x] 19. Integrate voice pipeline with WebSocket handler: connect listen.start/stop to pipeline, buffer binary frames during listening, send STT/TTS messages to device, stream TTS Opus frames, implement abort handling, add POST /api/voice/process-text endpoint
   - Requirements: 3, 6.2
   - Dependencies: 5, 17
 
-- [ ] 20. Implement external information services: ASK_TIME (current time in configured timezone), ASK_WEATHER (weather API or mock), ASK_GENERAL_INFO (LLM concise answer), summarize to ≤3 sentences, fallback on provider unavailability
+- [x] 20. Implement external information services: ASK_TIME (current time in configured timezone), ASK_WEATHER (weather API or mock), ASK_GENERAL_INFO (LLM concise answer), summarize to ≤3 sentences, fallback on provider unavailability
   - Requirements: 12
   - Dependencies: 16
 
-- [ ] 21. Implement music catalog with seed data: seed 5 initial tracks (rain, sleep, nature, ocean, meditation), set default track, implement MusicService (get_tracks, select_track, get_default_track)
+- [x] 21. Implement music catalog with seed data: seed 5 initial tracks (rain, sleep, nature, ocean, meditation), set default track, implement MusicService (get_tracks, select_track, get_default_track)
   - Requirements: 11.4, 11.5
   - Dependencies: 2
 
-- [ ] 22. Implement admin authentication backend: admin_users table, AdminAuthService (create_admin, verify_password with bcrypt, generate/verify JWT), POST /api/admin/login, JWT middleware for /api/admin/* routes (24h expiry), seed initial admin from env vars, max 2 accounts limit
+- [x] 22. Implement admin authentication backend: admin_users table, AdminAuthService (create_admin, verify_password with bcrypt, generate/verify JWT), POST /api/admin/login, JWT middleware for /api/admin/* routes (24h expiry), seed initial admin from env vars, max 2 accounts limit
   - Requirements: 19.2, 19.3, 19.6, 19.7
   - Dependencies: 2
 
-- [ ] 23. Implement voice configuration backend: voice_configurations table, VoiceConfigService (get_effective_config with per-device override, update_config), API endpoints (GET/PUT global, GET/PUT/DELETE per-device), validate speed (0.25-4.0) and voice options, integrate with voice pipeline
+- [x] 23. Implement voice configuration backend: voice_configurations table, VoiceConfigService (get_effective_config with per-device override, update_config), API endpoints (GET/PUT global, GET/PUT/DELETE per-device), validate speed (0.25-4.0) and voice options, integrate with voice pipeline
   - Requirements: 20
   - Dependencies: 2, 22
 
-- [ ] 24. Implement system instructions backend: system_instructions table with version history, InstructionsService (get_effective, update with versioning, get_history), 4 pre-built templates, API endpoints (GET/POST global, GET history, GET templates, GET/POST per-device), integrate with LLM service as system message
+- [x] 24. Implement system instructions backend: system_instructions table with version history, InstructionsService (get_effective, update with versioning, get_history), 4 pre-built templates, API endpoints (GET/POST global, GET history, GET templates, GET/POST per-device), integrate with LLM service as system message
   - Requirements: 21
   - Dependencies: 2, 22
 
-- [ ] 25. Implement music catalog management backend: file upload storage (UPLOAD_DIR, UUID-prefixed), audio format validation (mp3/ogg/wav/flac, max 50MB), API endpoints (GET/POST catalog, POST upload, PUT/DELETE track, GET stream, PUT default)
+- [x] 25. Implement music catalog management backend: file upload storage (UPLOAD_DIR, UUID-prefixed), audio format validation (mp3/ogg/wav/flac, max 50MB), API endpoints (GET/POST catalog, POST upload, PUT/DELETE track, GET stream, PUT default)
   - Requirements: 22
   - Dependencies: 21, 22
 
-- [ ] 26. Implement conversation history backend: GET /api/admin/conversations (paginated, filterable by device/session/search/date), ILIKE text search, pagination (default 50, max 200), DELETE single and bulk by date range, GET export (JSON/CSV)
+- [x] 26. Implement conversation history backend: GET /api/admin/conversations (paginated, filterable by device/session/search/date), ILIKE text search, pagination (default 50, max 200), DELETE single and bulk by date range, GET export (JSON/CSV)
   - Requirements: 23
   - Dependencies: 18, 22
 
-- [ ] 27. Implement device management admin backend: GET /api/admin/devices (list with status), GET device details, GET effective config, POST send test command, GET command history, GET /api/admin/dashboard (overview stats)
+- [x] 27. Implement device management admin backend: GET /api/admin/devices (list with status), GET device details, GET effective config, POST send test command, GET command history, GET /api/admin/dashboard (overview stats)
   - Requirements: 25, 19.4
   - Dependencies: 4, 6, 22
 
-- [ ] 28. Implement admin WebSocket for real-time updates: /ws/admin endpoint with JWT auth, AdminWebSocketManager broadcasting device state changes, command status updates, and new conversations
+- [x] 28. Implement admin WebSocket for real-time updates: /ws/admin endpoint with JWT auth, AdminWebSocketManager broadcasting device state changes, command status updates, and new conversations
   - Requirements: 25.3
   - Dependencies: 5, 22
 
-- [ ] 29. Initialize Next.js admin frontend project with TypeScript and Tailwind CSS, implement login page, AuthProvider with JWT management, protected route wrapper, API client library, and static export configuration
+- [x] 29. Initialize Next.js admin frontend project with TypeScript and Tailwind CSS, implement login page, AuthProvider with JWT management, protected route wrapper, API client library, and static export configuration
   - Requirements: 19.1, 19.2, 19.5
   - Dependencies: 22
 
-- [ ] 30. Implement admin frontend dashboard overview page showing online device count, active connections, recent conversations, with real-time WebSocket updates and responsive layout
+- [x] 30. Implement admin frontend dashboard overview page showing online device count, active connections, recent conversations, with real-time WebSocket updates and responsive layout
   - Requirements: 19.4, 19.5
   - Dependencies: 28, 29
 
-- [ ] 31. Implement admin frontend device management: device list with status indicators, per-device detail page with real-time state, command sending UI, command history table, per-device config page
+- [x] 31. Implement admin frontend device management: device list with status indicators, per-device detail page with real-time state, command sending UI, command history table, per-device config page
   - Requirements: 25
   - Dependencies: 27, 29, 30
 
-- [ ] 32. Implement admin frontend voice configuration page: voice selector (6 options), speed slider (0.25-4.0), STT/TTS language dropdowns, global vs per-device toggle, save with feedback
+- [x] 32. Implement admin frontend voice configuration page: voice selector (6 options), speed slider (0.25-4.0), STT/TTS language dropdowns, global vs per-device toggle, save with feedback
   - Requirements: 20
   - Dependencies: 23, 29
 
-- [ ] 33. Implement admin frontend system instructions page: large text editor, template selector (4 templates), version history viewer, per-device override
+- [x] 33. Implement admin frontend system instructions page: large text editor, template selector (4 templates), version history viewer, per-device override
   - Requirements: 21
   - Dependencies: 24, 29
 
-- [ ] 34. Implement admin frontend music catalog page: track list, add by URL form, file upload with drag-and-drop, edit metadata modal, delete with confirmation, audio player preview, set-as-default button
+- [x] 34. Implement admin frontend music catalog page: track list, add by URL form, file upload with drag-and-drop, edit metadata modal, delete with confirmation, audio player preview, set-as-default button
   - Requirements: 22
   - Dependencies: 25, 29
 
-- [ ] 35. Implement admin frontend conversation history page: paginated list, search bar, device/date filters, detail view with latencies, single/bulk delete, JSON/CSV export download
+- [x] 35. Implement admin frontend conversation history page: paginated list, search bar, device/date filters, detail view with latencies, single/bulk delete, JSON/CSV export download
   - Requirements: 23
   - Dependencies: 26, 29
 
-- [ ] 36. Implement web-based test environment: /ws/test WebSocket endpoint, virtual test device registration (TE:ST:00:00:00:01), test page with text input, microphone button (MediaRecorder), real-time pipeline viewer (STT/intent/command/response), TTS audio playback, lamp state visualizer
+- [x] 36. Implement web-based test environment: /ws/test WebSocket endpoint, virtual test device registration (TE:ST:00:00:00:01), test page with text input, microphone button (MediaRecorder), real-time pipeline viewer (STT/intent/command/response), TTS audio playback, lamp state visualizer
   - Requirements: 24
   - Dependencies: 19, 29
 
-- [ ] 37. Build static frontend and integrate with FastAPI: configure Next.js static export, mount at /admin and /test paths via StaticFiles, verify WebSocket upgrade alongside static serving
+- [x] 37. Build static frontend and integrate with FastAPI: configure Next.js static export, mount at /admin and /test paths via StaticFiles, verify WebSocket upgrade alongside static serving
   - Requirements: 19.1, 24.1
   - Dependencies: 30, 31, 32, 33, 34, 35, 36
 

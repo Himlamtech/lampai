@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LampAI Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .lamp-glow { box-shadow: 0 0 30px rgba(255, 210, 125, 0.6); }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen" x-data="app()" x-init="init()">
+
+<!-- Login Screen -->
+<div x-show="!token" x-cloak class="flex items-center justify-center min-h-screen">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-96">
+        <h1 class="text-2xl font-bold mb-6 text-center">🌙 LampAI Admin</h1>
+        <form @submit.prevent="login()">
+            <input type="text" x-model="loginForm.username" placeholder="Username"
+                   class="w-full p-3 mb-4 bg-gray-700 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none">
+            <input type="password" x-model="loginForm.password" placeholder="Password"
+                   class="w-full p-3 mb-4 bg-gray-700 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none">
+            <button type="submit" class="w-full p-3 bg-amber-500 hover:bg-amber-600 rounded-lg font-bold transition">
+                Login
+            </button>
+            <p x-show="loginError" class="text-red-400 text-sm mt-3 text-center" x-text="loginError"></p>
+        </form>
+    </div>
+</div>
+
+<!-- Main Dashboard -->
+<div x-show="token" x-cloak>
+    <!-- Nav -->
+    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">🌙 LampAI Admin</h1>
+        <div class="flex gap-4 items-center">
+            <span class="text-gray-400 text-sm" x-text="'Logged in as ' + username"></span>
+            <button @click="logout()" class="text-sm text-red-400 hover:text-red-300">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Tabs -->
+    <div class="border-b border-gray-700 px-6">
+        <div class="flex gap-1">
+            <template x-for="tab in tabs">
+                <button @click="activeTab = tab.id"
+                        :class="activeTab === tab.id ? 'bg-gray-700 text-amber-400' : 'text-gray-400 hover:text-white'"
+                        class="px-4 py-3 rounded-t-lg text-sm font-medium transition" x-text="tab.label">
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6 max-w-7xl mx-auto">
+
+        <!-- Dashboard Tab -->
+        <div x-show="activeTab === 'dashboard'">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gray-800 p-6 rounded-xl">
+                    <p class="text-gray-400 text-sm">Online Devices</p>
+                    <p class="text-3xl font-bold text-green-400" x-text="dashboard.online_devices"></p>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl">
+                    <p class="text-gray-400 text-sm">Total Devices</p>
+                    <p class="text-3xl font-bold" x-text="dashboard.total_devices"></p>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl">
+                    <p class="text-gray-400 text-sm">Active Connections</p>
+                    <p class="text-3xl font-bold text-blue-400" x-text="dashboard.active_connections"></p>
+                </div>
+            </div>
+            <h3 class="text-lg font-semibold mb-4">Recent Conversations</h3>
+            <div class="bg-gray-800 rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-700">
+                        <tr><th class="p-3 text-left">Device</th><th class="p-3 text-left">User</th><th class="p-3 text-left">Response</th><th class="p-3 text-left">Intent</th><th class="p-3">Latency</th></tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="c in dashboard.recent_conversations">
+                            <tr class="border-t border-gray-700">
+                                <td class="p-3 font-mono text-xs" x-text="c.device_id?.slice(-8)"></td>
+                                <td class="p-3" x-text="c.user_text?.slice(0,30)"></td>
+                                <td class="p-3 text-gray-400" x-text="c.ai_response?.slice(0,40)"></td>
+                                <td class="p-3"><span class="bg-gray-700 px-2 py-1 rounded text-xs" x-text="c.intent"></span></td>
+                                <td class="p-3 text-center" x-text="c.latency_ms ? c.latency_ms + 'ms' : '-'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Devices Tab -->
+        <div x-show="activeTab === 'devices'">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="d in devices">
+                    <div class="bg-gray-800 p-5 rounded-xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-mono text-sm" x-text="d.device_id"></span>
+                            <span :class="d.status === 'ONLINE' ? 'bg-green-500' : 'bg-red-500'" class="w-3 h-3 rounded-full"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                            <span>Power: <span :class="d.light_power ? 'text-amber-400' : 'text-gray-500'" x-text="d.light_power ? 'ON' : 'OFF'"></span></span>
+                            <span>Brightness: <span class="text-white" x-text="d.brightness + '%'"></span></span>
+                            <span>Mode: <span class="text-white" x-text="d.mode"></span></span>
+                            <span>Music: <span x-text="d.is_playing_music ? '▶️' : '⏹️'"></span></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Voice Config Tab -->
+        <div x-show="activeTab === 'voice'">
+            <div class="bg-gray-800 p-6 rounded-xl max-w-lg">
+                <h3 class="text-lg font-semibold mb-4">Voice Configuration</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-400">TTS Voice</label>
+                        <select x-model="voiceConfig.voice" class="w-full p-2 bg-gray-700 rounded mt-1">
+                            <option value="alloy">Alloy</option>
+                            <option value="echo">Echo</option>
+                            <option value="fable">Fable</option>
+                            <option value="onyx">Onyx</option>
+                            <option value="nova">Nova</option>
+                            <option value="shimmer">Shimmer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-400">Speed: <span x-text="voiceConfig.speed"></span></label>
+                        <input type="range" min="0.25" max="4.0" step="0.25" x-model="voiceConfig.speed" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-400">STT Language</label>
+                        <select x-model="voiceConfig.stt_language" class="w-full p-2 bg-gray-700 rounded mt-1">
+                            <option value="vi">Vietnamese</option>
+                            <option value="en">English</option>
+                            <option value="auto">Auto-detect</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Tab -->
+        <div x-show="activeTab === 'instructions'">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <h3 class="text-lg font-semibold mb-3">System Instructions</h3>
+                    <textarea x-model="instructions" rows="8"
+                              class="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none resize-y"></textarea>
+                    <button @click="saveInstructions()" class="mt-3 px-6 py-2 bg-amber-500 hover:bg-amber-600 rounded-lg font-medium transition">
+                        Save Instructions
+                    </button>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Templates</h3>
+                    <div class="space-y-2">
+                        <template x-for="t in templates">
+                            <button @click="instructions = t.content"
+                                    class="w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition"
+                                    x-text="t.name.replace('_', ' ')">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Tab -->
+        <div x-show="activeTab === 'test'">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Test Voice Pipeline</h3>
+                    <form @submit.prevent="testVoice()">
+                        <input type="text" x-model="testInput" placeholder="Type a command (e.g., bật đèn lên)"
+                               class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none">
+                        <button type="submit" class="mt-3 px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition"
+                                :disabled="testLoading">
+                            <span x-show="!testLoading">Send</span>
+                            <span x-show="testLoading">Processing...</span>
+                        </button>
+                    </form>
+                    <div x-show="testResult" class="mt-4 bg-gray-800 p-4 rounded-xl space-y-2 text-sm">
+                        <p><span class="text-gray-400">Intent:</span> <span class="text-amber-400 font-mono" x-text="testResult?.intent"></span></p>
+                        <p><span class="text-gray-400">Params:</span> <span class="font-mono" x-text="JSON.stringify(testResult?.params)"></span></p>
+                        <p><span class="text-gray-400">Response:</span> <span class="text-green-300" x-text="testResult?.ai_response"></span></p>
+                        <p><span class="text-gray-400">Latency:</span> <span x-text="testResult?.latency_ms + 'ms'"></span></p>
+                        <p x-show="testResult?.command_sent"><span class="text-gray-400">Command:</span> <span class="text-blue-300" x-text="testResult?.command_id"></span></p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Simulated Lamp</h3>
+                    <div class="bg-gray-800 p-6 rounded-xl flex flex-col items-center">
+                        <div class="w-32 h-32 rounded-full flex items-center justify-center text-4xl transition-all duration-500"
+                             :class="lampState.light_power ? 'lamp-glow bg-amber-200' : 'bg-gray-700'"
+                             :style="lampState.light_power ? 'opacity:' + (lampState.brightness/100) : ''">
+                            💡
+                        </div>
+                        <div class="mt-4 text-center space-y-1 text-sm">
+                            <p>Power: <span :class="lampState.light_power ? 'text-green-400' : 'text-red-400'" x-text="lampState.light_power ? 'ON' : 'OFF'"></span></p>
+                            <p>Brightness: <span x-text="lampState.brightness + '%'"></span></p>
+                            <p>Mode: <span x-text="lampState.mode"></span></p>
+                            <p>Music: <span x-text="lampState.is_playing_music ? '▶️ Playing' : '⏹️ Stopped'"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function app() {
+    return {
+        token: localStorage.getItem('lampai_token') || '',
+        username: localStorage.getItem('lampai_user') || '',
+        loginForm: { username: '', password: '' },
+        loginError: '',
+        activeTab: 'dashboard',
+        tabs: [
+            { id: 'dashboard', label: '📊 Dashboard' },
+            { id: 'devices', label: '💡 Devices' },
+            { id: 'voice', label: '🎙️ Voice Config' },
+            { id: 'instructions', label: '📝 Instructions' },
+            { id: 'test', label: '🧪 Test' },
+        ],
+        dashboard: { online_devices: 0, total_devices: 0, active_connections: 0, recent_conversations: [] },
+        devices: [],
+        voiceConfig: { voice: 'nova', speed: 1.0, stt_language: 'vi', tts_language: 'vi' },
+        instructions: '',
+        templates: [],
+        testInput: '',
+        testResult: null,
+        testLoading: false,
+        lampState: { light_power: false, brightness: 50, mode: 'NORMAL', is_playing_music: false },
+
+        async init() {
+            if (this.token) {
+                await this.loadDashboard();
+                await this.loadDevices();
+                await this.loadVoiceConfig();
+                await this.loadInstructions();
+                await this.loadTemplates();
+            }
+        },
+
+        async api(path, options = {}) {
+            const res = await fetch('/api/admin' + path, {
+                ...options,
+                headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json', ...options.headers },
+            });
+            if (res.status === 401) { this.logout(); return null; }
+            return res.json();
+        },
+
+        async login() {
+            this.loginError = '';
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.loginForm),
+                });
+                if (!res.ok) { this.loginError = 'Invalid credentials'; return; }
+                const data = await res.json();
+                this.token = data.token;
+                this.username = data.username;
+                localStorage.setItem('lampai_token', data.token);
+                localStorage.setItem('lampai_user', data.username);
+                await this.init();
+            } catch (e) { this.loginError = 'Connection error'; }
+        },
+
+        logout() {
+            this.token = '';
+            this.username = '';
+            localStorage.removeItem('lampai_token');
+            localStorage.removeItem('lampai_user');
+        },
+
+        async loadDashboard() {
+            const data = await this.api('/dashboard');
+            if (data) this.dashboard = data;
+        },
+
+        async loadDevices() {
+            const data = await this.api('/devices');
+            if (data) this.devices = data.devices;
+        },
+
+        async loadVoiceConfig() {
+            const data = await this.api('/voice-config');
+            if (data) this.voiceConfig = data;
+        },
+
+        async loadInstructions() {
+            const data = await this.api('/instructions');
+            if (data) this.instructions = data.content;
+        },
+
+        async loadTemplates() {
+            const data = await this.api('/instructions/templates');
+            if (data) this.templates = data.templates;
+        },
+
+        async saveInstructions() {
+            await this.api('/instructions', { method: 'POST', body: JSON.stringify({ content: this.instructions }) });
+            alert('Instructions saved!');
+        },
+
+        async testVoice() {
+            if (!this.testInput.trim()) return;
+            this.testLoading = true;
+            this.testResult = null;
+            try {
+                const res = await fetch('/api/voice/process-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: this.testInput, device_id: 'TE:ST:00:00:00:01', session_id: 'admin-test' }),
+                });
+                this.testResult = await res.json();
+                // Update simulated lamp state based on intent
+                this.updateLampState(this.testResult);
+            } catch (e) { this.testResult = { error: 'Request failed' }; }
+            this.testLoading = false;
+        },
+
+        updateLampState(result) {
+            if (!result?.intent) return;
+            const i = result.intent;
+            if (i === 'TURN_ON_LIGHT') this.lampState.light_power = true;
+            else if (i === 'TURN_OFF_LIGHT') this.lampState.light_power = false;
+            else if (i === 'SET_BRIGHTNESS') this.lampState.brightness = result.params?.brightness || 50;
+            else if (i === 'INCREASE_BRIGHTNESS') this.lampState.brightness = Math.min(this.lampState.brightness + 20, 100);
+            else if (i === 'DECREASE_BRIGHTNESS') this.lampState.brightness = Math.max(this.lampState.brightness - 20, 0);
+            else if (i === 'CHANGE_LIGHT_MODE') this.lampState.mode = result.params?.mode || 'NORMAL';
+            else if (i === 'PLAY_MUSIC') this.lampState.is_playing_music = true;
+            else if (i === 'STOP_MUSIC') this.lampState.is_playing_music = false;
+        },
+    };
+}
+</script>
+</body>
+</html>

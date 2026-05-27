@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # AI Models
     llm_model: str = "gpt-4.1-nano"
-    stt_model: str = "gpt-4o-transcribe"
+    stt_model: str = "whisper-1"
     tts_model: str = "tts-1"
     tts_voice: str = "nova"
     tts_speed: float = 1.0
